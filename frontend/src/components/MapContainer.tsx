@@ -52,9 +52,9 @@ export default function MapContainer({
         sources: {
           tf: {
             type: 'raster',
-            tiles: ['https://tile.opentopomap.org/{z}/{x}/{y}.png'],
+            tiles: ['https://stamen-tiles.a.ssl.fastly.net/terrain/{z}/{x}/{y}.jpg'],
             tileSize: 256,
-            attribution: '© OpenTopoMap, © OpenStreetMap contributors',
+            attribution: '© Stamen Design, © OpenStreetMap contributors',
           },
         },
         layers: [
@@ -74,7 +74,7 @@ export default function MapContainer({
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-    console.log('[Map] Using OpenTopoMap (contours + terrain, no red trails)');
+    console.log('[Map] Using Stamen Terrain (hillshade only, no roads)');
 
     // Fit-to-route button
     const fitBtn = document.createElement('div');

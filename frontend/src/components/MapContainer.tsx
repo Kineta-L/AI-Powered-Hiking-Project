@@ -152,9 +152,23 @@ export default function MapContainer({
     if (!map) return;
 
     const updateRoute = () => {
-      const routeCoords = trailPath && trailPath.length > 1
-        ? trailPath
-        : coordinates.map(c => [c.longitude, c.latitude] as [number, number]);
+      // Only draw route when we have actual trail path data
+      // Never fall back to drawing lines from marker coordinates
+      if (!trailPath || trailPath.length < 2) {
+        // Clear route source
+        const src = map.getSource('route-source');
+        if (src) {
+          (src as maplibregl.GeoJSONSource).setData({
+            type: 'Feature', properties: {},
+            geometry: { type: 'LineString', coordinates: [] },
+          });
+        }
+        // Remove warning label
+        const w = document.getElementById('route-quality-warning');
+        if (w) w.remove();
+        return;
+      }
+      const routeCoords = trailPath;
 
       if (routeCoords.length < 2) return;
 
@@ -256,9 +270,23 @@ export default function MapContainer({
     if (!map || !btn) return;
 
     const handler = () => {
-      const routeCoords = trailPath && trailPath.length > 1
-        ? trailPath
-        : coordinates.map(c => [c.longitude, c.latitude] as [number, number]);
+      // Only draw route when we have actual trail path data
+      // Never fall back to drawing lines from marker coordinates
+      if (!trailPath || trailPath.length < 2) {
+        // Clear route source
+        const src = map.getSource('route-source');
+        if (src) {
+          (src as maplibregl.GeoJSONSource).setData({
+            type: 'Feature', properties: {},
+            geometry: { type: 'LineString', coordinates: [] },
+          });
+        }
+        // Remove warning label
+        const w = document.getElementById('route-quality-warning');
+        if (w) w.remove();
+        return;
+      }
+      const routeCoords = trailPath;
       if (routeCoords.length > 1) {
         const bounds = new maplibregl.LngLatBounds();
         routeCoords.forEach(c => bounds.extend(c as [number, number]));
@@ -284,11 +312,8 @@ export default function MapContainer({
 
     if (!showMarkers) return;
 
-    const routeCoords = trailPath && trailPath.length > 1
-      ? trailPath
-      : coordinates.map(c => [c.longitude, c.latitude] as [number, number]);
-
-    if (routeCoords.length < 2) return;
+    if (!trailPath || trailPath.length < 2) return;
+    const routeCoords = trailPath;
 
     // START marker
     const startCoord = routeCoords[0];

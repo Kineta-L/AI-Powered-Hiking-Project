@@ -1,0 +1,13 @@
+{
+  "name": "ai-hiking-guide",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:frontend\"",
+    "dev:api": "cd api && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "install:all": "cd api && npm install && cd ../frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

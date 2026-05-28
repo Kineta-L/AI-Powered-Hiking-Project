@@ -18,6 +18,7 @@ interface MapContainerProps {
   totalDays?: number;
   showDayMarkers?: boolean;
   showMarkers?: boolean;
+  routeQuality?: 'seed' | 'osrm' | 'waypoints' | 'none';
 }
 
 export default function MapContainer({
@@ -29,6 +30,7 @@ export default function MapContainer({
   totalDays,
   showDayMarkers = false,
   showMarkers = false,
+  routeQuality = 'none',
 }: MapContainerProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<maplibregl.Map | null>(null);
@@ -184,7 +186,56 @@ export default function MapContainer({
       map.on('style.load', onStyle);
       return () => { map.off('style.load', onStyle); };
     }
-  }, [trailPath, coordinates, fitBounds]);
+        // Update line styles based on route quality
+      const isEstimated = routeQuality === 'waypoints';
+      ['route-glow', 'route-outline', 'route-line'].forEach(layerId => {
+        const layer = map.getLayer(layerId);
+        if (!layer) return;
+        if (isEstimated) {
+          if (layerId === 'route-glow') {
+            map.setPaintProperty(layerId, 'line-color', '#6b7280');
+            map.setPaintProperty(layerId, 'line-opacity', 0.08);
+            map.setPaintProperty(layerId, 'line-blur', 2);
+          } else if (layerId === 'route-outline') {
+            map.setPaintProperty(layerId, 'line-color', '#9ca3af');
+            map.setPaintProperty(layerId, 'line-opacity', 0.3);
+          } else if (layerId === 'route-line') {
+            map.setPaintProperty(layerId, 'line-color', '#6b7280');
+            map.setPaintProperty(layerId, 'line-width', 2.5);
+            map.setPaintProperty(layerId, 'line-opacity', 0.7);
+            map.setPaintProperty(layerId, 'line-dasharray', [5, 3]);
+          }
+        } else {
+          if (layerId === 'route-glow') {
+            map.setPaintProperty(layerId, 'line-color', '#ff2d78');
+            map.setPaintProperty(layerId, 'line-opacity', 0.15);
+            map.setPaintProperty(layerId, 'line-blur', 3);
+          } else if (layerId === 'route-outline') {
+            map.setPaintProperty(layerId, 'line-color', '#fff');
+            map.setPaintProperty(layerId, 'line-opacity', 0.4);
+          } else if (layerId === 'route-line') {
+            map.setPaintProperty(layerId, 'line-color', '#ff2d78');
+            map.setPaintProperty(layerId, 'line-width', 3);
+            map.setPaintProperty(layerId, 'line-opacity', 1);
+            map.setPaintProperty(layerId, 'line-dasharray', undefined as any);
+          }
+        }
+      });
+
+      // Show/hide warning label
+      const existingWarning = document.getElementById('route-quality-warning');
+      if (isEstimated) {
+        if (!existingWarning) {
+          const warning = document.createElement('div');
+          warning.id = 'route-quality-warning';
+          warning.style.cssText = 'position:absolute;bottom:10px;left:10px;background:rgba(107,114,128,0.9);color:#fff;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:500;z-index:2;pointer-events:none;font-family:Inter,PingFang SC,sans-serif';
+          warning.textContent = '⚠️ 非真实路线，仅供参考';
+          map.getContainer().appendChild(warning);
+        }
+      } else {
+        if (existingWarning) existingWarning.remove();
+      }
+    }, [trailPath, coordinates, fitBounds, routeQuality]);
 
   // Center map when coordinates change (even single point)
   useEffect(() => {

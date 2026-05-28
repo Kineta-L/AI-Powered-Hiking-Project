@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useUser } from '@clerk/clerk-react';
 import MapContainer from '../components/MapContainer';
 import { geocode } from '../lib/geocode';
-import { getHikingPath } from '../lib/trailRouter';
+import { getHikingPath, TrailRouteResult } from '../lib/trailRouter';
 import { downloadWordDoc } from '../lib/download';
 
 interface RoutePoint { name: string; lat: number; lng: number; type: string; }
@@ -35,6 +35,7 @@ export default function PlannerPage() {
   );
   const [geocoding, setGeocoding] = useState(false);
   const [trailPath, setTrailPath] = useState<[number, number][] | undefined>();
+  const [routeEngine, setRouteEngine] = useState<'seed' | 'osrm' | 'waypoints' | 'none'>('none');
   const contentRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -83,16 +84,16 @@ export default function PlannerPage() {
       setMapCenter(pts);
       // Fetch real hiking trail between all waypoints
       getHikingPath(routePoints.map(p => ({ lat: p.lat, lng: p.lng })))
-        .then(path => setTrailPath(path));
+        .then(result => { setTrailPath(result.path); setRouteEngine(result.engine); });
     } else {
-      setTrailPath(undefined);
+      setTrailPath(undefined); setRouteEngine('none');
     }
-  }, [result]);
+  }, [result, hasSeedPath]);
   
 
   const generate = async () => {
     if (!destination.trim()) return;
-    setGenerating(true); setError(''); setContent(''); setResult(null); setShowResults(false); setHasSeedPath(false); setTrailPath(undefined);
+    setGenerating(true); setError(''); setContent(''); setResult(null); setShowResults(false); setHasSeedPath(false); setTrailPath(undefined); setRouteEngine('none');
 
     try {
       const res = await fetch('/api/ai/plan', {
@@ -118,6 +119,7 @@ export default function PlannerPage() {
             if (data.type === 'seed_route' && data.coordinates) {
               // Use real seed coordinates directly - no OSRM needed
               setTrailPath(data.coordinates);
+              setRouteEngine('seed');
               setHasSeedPath(true);
               console.log('[Planner] Got real seed route:', data.coordinates.length, 'coords');
             }
@@ -145,7 +147,7 @@ export default function PlannerPage() {
   return (
     <div className="h-[calc(100vh-3.5rem)] relative flex">
       <div className="absolute inset-0 z-0">
-        <MapContainer coordinates={mapCoords} trailPath={trailPath} totalDays={days} showDayMarkers={false} showMarkers={false} interactive={true} fitBounds={!!(result?.routePoints && result.routePoints.length > 0)}
+        <MapContainer coordinates={mapCoords} trailPath={trailPath} totalDays={days} showDayMarkers={false} showMarkers={false} routeQuality={routeEngine} interactive={true} fitBounds={!!(result?.routePoints && result.routePoints.length > 0)}
         />
       </div>
 

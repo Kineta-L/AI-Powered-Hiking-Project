@@ -112,7 +112,7 @@ aiRouter.post('/plan', async (req: Request, res: Response) => {
       '\n\nYou are a professional hiking planner. Destination: ' + destination +
       '\n\n【IRON RULE】' + minDailyKm + '-' + maxDailyKm + 'km/day x ' + days + ' days = ' + minTotalKm + '-' + maxTotalKm + 'km TOTAL.' +
       ' If the classic trail is longer, you MUST clip a ' + minTotalKm + '-' + maxTotalKm + 'km continuous segment. NOT the whole trail!' +
-      '\n\nRoute: single continuous one-way, no branches. routePoints every 1.5-3km, ~' + maxRoutePoints + ' points.' +
+      '\n\n?ROUTE RULES?1.No backtracking: strictly one-way, no U-turns, no loops. Every routePoint must follow forward direction. 2.Scenic priority: prefer paths with viewpoints, lakes, peaks, waterfalls, canyons, meadows. 3.routePoints every 1.5-3km, ~' + maxRoutePoints + ' points.' +
       '\n\nReturn ONLY JSON {"overview":"explain segment choice with distance","difficulty":"","totalDistance":number (MUST be ' + minTotalKm + '-' + maxTotalKm + ')","totalElevation":0,"bestSeason":"","days":[...],"gearList":[],"safetyTips":[],"routePoints":[{"name":"","lat":0,"lng":0,"type":"start/camp/end"}]}';
   }
 

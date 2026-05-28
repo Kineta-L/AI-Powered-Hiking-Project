@@ -370,6 +370,364 @@ const trails = [
       { dayNumber: 5, titleZh: "珍珠海→冲古寺", titleEn: "Pearl Lake→Chonggu Monastery", description: "返回冲古寺，完成转山。约8km。", distance: 8, elevation: 300, highlights: "冲古寺、三神山全景" },
     ]
   },
+  // ===== EXPANDED TRAILS (12 more) =====
+  {
+    titleZh: "长城箭扣徒步",
+    titleEn: "Great Wall Jiankou Trek",
+    difficulty: "hard",
+    distance: 14,
+    elevationGain: 900,
+    duration: 1,
+    season: "春秋",
+    region: "北京",
+    country: "中国",
+    descriptionZh: "箭扣长城是北京最险峻的野长城段，未经修复的原生态城墙，蜿蜒于险峰之上。因形如满弓扣箭得名，是长城摄影的圣地。",
+    descriptionEn: "Jiankou is Beijing's most rugged wild Great Wall section, unrestored and dramatic. Named for its arrow-notch shape, it's a photography mecca.",
+    coordinates: [
+        [116.484, 40.458, 600],
+        [116.487, 40.457, 640],
+        [116.49, 40.455, 690],
+        [116.493, 40.453, 750],
+        [116.496, 40.451, 810],
+        [116.499, 40.449, 880],
+        [116.502, 40.448, 910],
+        [116.505, 40.447, 870],
+        [116.508, 40.445, 810],
+        [116.511, 40.443, 760],
+        [116.514, 40.441, 710],
+        [116.517, 40.439, 660],
+        [116.52, 40.437, 610],
+        [116.522, 40.435, 570],
+        [116.525, 40.433, 530],
+        [116.527, 40.431, 490],
+        [116.529, 40.429, 450],
+        [116.531, 40.427, 410]
+    ],
+    days: [
+        { dayNumber: 1, titleZh: "箭扣→正北楼→慕田峪", titleEn: "Jiankou→Zhenbei→Mutianyu", description: "从箭扣出发，经正北楼、鹰飞倒仰、天梯，到慕田峪。全程14km，爬升约900m。", distance: 14, elevation: 900, highlights: "鹰飞倒仰、正北楼全景、野长城日落" }
+    ]
+  },
+  {
+    titleZh: "黄山徒步",
+    titleEn: "Huangshan Mountain Trek",
+    difficulty: "moderate",
+    distance: 16,
+    elevationGain: 1200,
+    duration: 2,
+    season: "春秋",
+    region: "安徽",
+    country: "中国",
+    descriptionZh: "黄山——五岳归来不看山，黄山归来不看岳。奇松、怪石、云海、温泉四绝。从云谷寺上山，经北海、西海大峡谷，莲花峰下山。",
+    descriptionEn: "Huangshan — most iconic mountain in China, famed for peculiarly shaped pines, bizarre rocks, sea of clouds, and hot springs.",
+    coordinates: [
+        [118.178, 30.124, 890],
+        [118.18, 30.125, 930],
+        [118.182, 30.126, 980],
+        [118.184, 30.127, 1040],
+        [118.186, 30.128, 1110],
+        [118.188, 30.129, 1180],
+        [118.19, 30.13, 1260],
+        [118.191, 30.131, 1340],
+        [118.192, 30.132, 1420],
+        [118.194, 30.134, 1520],
+        [118.196, 30.138, 1680],
+        [118.197, 30.137, 1660],
+        [118.195, 30.135, 1620],
+        [118.193, 30.133, 1580],
+        [118.191, 30.131, 1520],
+        [118.189, 30.129, 1460],
+        [118.187, 30.127, 1400],
+        [118.185, 30.125, 1340],
+        [118.183, 30.123, 1280]
+    ],
+    days: [
+        { dayNumber: 1, titleZh: "云谷寺→北海→西海", titleEn: "Yungu→North Sea→West Sea", description: "从云谷寺上山，经始信峰到北海景区，下午穿越西海大峡谷。约8km，爬升700m。", distance: 8, elevation: 700, highlights: "始信峰、北海云海、西海大峡谷" },
+        { dayNumber: 2, titleZh: "光明顶→莲花峰→慈光阁", titleEn: "Bright Summit→Lotus→Ciguang", description: "日出后登光明顶，经鳌鱼峰到莲花峰，一路下山。约8km。", distance: 8, elevation: 500, highlights: "光明顶日出、莲花峰、迎客松" }
+    ]
+  },
+  {
+    titleZh: "富士山登山",
+    titleEn: "Mount Fuji Climb",
+    difficulty: "hard",
+    distance: 15,
+    elevationGain: 1500,
+    duration: 2,
+    season: "夏季",
+    region: "山梨/静冈",
+    country: "日本",
+    descriptionZh: "日本最高峰（3776m），世界文化遗产。7-8月开山季登顶看日出（御来光）是日本人的一生必做之事。吉田路线最受欢迎。",
+    descriptionEn: "Japan's highest peak at 3776m, UNESCO World Heritage. Watching sunrise (Goraiko) from the summit is a lifelong dream. Yoshida trail is most popular.",
+    coordinates: [
+        [138.733, 35.41, 2300],
+        [138.733, 35.407, 2400],
+        [138.734, 35.402, 2520],
+        [138.735, 35.396, 2650],
+        [138.736, 35.39, 2800],
+        [138.737, 35.384, 2950],
+        [138.738, 35.378, 3100],
+        [138.739, 35.373, 3250],
+        [138.74, 35.366, 3420],
+        [138.741, 35.36, 3600],
+        [138.741, 35.357, 3776]
+    ],
+    days: [
+        { dayNumber: 1, titleZh: "五合目→八合目山庄", titleEn: "5th Sta→8th Sta Hut", description: "从吉田线五合目出发，在八合目山小屋过夜。约6km，爬升1000m。", distance: 6, elevation: 1000, highlights: "富士五合目、山小屋体验" },
+        { dayNumber: 2, titleZh: "登顶→御来光→下山", titleEn: "Summit→Goraiko→Descent", description: "凌晨登顶看御来光，绕火山口一周后下山。约9km。", distance: 9, elevation: 500, highlights: "御来光日出、火山口巡游" }
+    ]
+  },
+  {
+    titleZh: "熊野古道中边路",
+    titleEn: "Kumano Kodo Nakahechi",
+    difficulty: "moderate",
+    distance: 38,
+    elevationGain: 1800,
+    duration: 4,
+    season: "春秋",
+    region: "和歌山",
+    country: "日本",
+    descriptionZh: "世界唯二的世界遗产朝圣之路。穿越和歌山的千年古道，参拜熊野三山。中边路是最经典的路线。",
+    descriptionEn: "One of only two UNESCO pilgrimage routes. This ancient path visits the three grand shrines of Kumano.",
+    coordinates: [
+        [135.352, 33.839, 100],
+        [135.356, 33.837, 200],
+        [135.364, 33.833, 320],
+        [135.372, 33.83, 420],
+        [135.382, 33.829, 480],
+        [135.394, 33.825, 420],
+        [135.406, 33.821, 350],
+        [135.418, 33.817, 270],
+        [135.43, 33.813, 180],
+        [135.439, 33.811, 120]
+    ],
+    days: [
+        { dayNumber: 1, titleZh: "泷尻→高原", titleEn: "Takijiri→Takahara", description: "从泷尻王子出发，爬升至高原熊野神社。约4km。", distance: 4, elevation: 400, highlights: "泷尻王子、高原展望台" },
+        { dayNumber: 2, titleZh: "高原→本宫大社", titleEn: "Takahara→Hongu", description: "穿越山林和村庄，抵达熊野本宫大社。约18km。", distance: 18, elevation: 600, highlights: "熊野本宫大社、大斋原鸟居" },
+        { dayNumber: 3, titleZh: "本宫→那智", titleEn: "Hongu→Nachi", description: "小云取越路段，穿越森林抵达那智大社。约13km。", distance: 13, elevation: 500, highlights: "那智瀑布、熊野那智大社" },
+        { dayNumber: 4, titleZh: "那智→新宫", titleEn: "Nachi→Shingu", description: "参拜熊野速玉大社，完成三山巡礼。约3km。", distance: 3, elevation: 300, highlights: "速玉大社、三山巡礼完成" }
+    ]
+  },
+  {
+    titleZh: "汤加里罗穿越",
+    titleEn: "Tongariro Alpine Crossing",
+    difficulty: "hard",
+    distance: 19.4,
+    elevationGain: 800,
+    duration: 1,
+    season: "夏季",
+    region: "北岛",
+    country: "新西兰",
+    descriptionZh: "新西兰最棒的一日徒步路线，穿越火山区。翡翠湖、蓝湖、红色火山口——也是指环王末日火山的取景地。",
+    descriptionEn: "New Zealand's best day hike. Emerald lakes and red crater — also Mount Doom in LOTR.",
+    coordinates: [
+        [175.562, -39.143, 1120],
+        [175.566, -39.14, 1220],
+        [175.572, -39.137, 1360],
+        [175.578, -39.134, 1500],
+        [175.586, -39.13, 1680],
+        [175.594, -39.126, 1880],
+        [175.602, -39.123, 1800],
+        [175.612, -39.118, 1660],
+        [175.62, -39.114, 1500]
+    ],
+    days: [
+        { dayNumber: 1, titleZh: "Mangatepopo→Ketetahi", titleEn: "Mangatepopo→Ketetahi", description: "穿越汤加里罗国家公园，从Mangatepopo到Ketetahi。全程19.4km。", distance: 19.4, elevation: 800, highlights: "翡翠湖、蓝湖、红火山口" }
+    ]
+  },
+  {
+    titleZh: "优胜美地半圆顶",
+    titleEn: "Yosemite Half Dome",
+    difficulty: "extreme",
+    distance: 26,
+    elevationGain: 1500,
+    duration: 1,
+    season: "夏季",
+    region: "加利福尼亚",
+    country: "美国",
+    descriptionZh: "优胜美地国家公园标志性徒步。最后120m拉钢索攀爬近乎垂直的花岗岩面。登顶俯瞰优胜美地谷全景。",
+    descriptionEn: "Yosemite's iconic trek. Final 120m requires steel cables up near-vertical granite. Summit view over Yosemite Valley.",
+    coordinates: [
+        [-119.567, 37.733, 1230],
+        [-119.565, 37.73, 1380],
+        [-119.561, 37.726, 1580],
+        [-119.556, 37.72, 1830],
+        [-119.55, 37.714, 2130],
+        [-119.544, 37.708, 2430],
+        [-119.538, 37.705, 2694]
+    ],
+    days: [
+        { dayNumber: 1, titleZh: "Mist Trail→Half Dome", titleEn: "Mist Trail→Half Dome", description: "从Happy Isles经Mist Trail、Nevada瀑布到Half Dome登顶。全程26km，12-14小时。", distance: 26, elevation: 1500, highlights: "Vernal瀑布、Nevada瀑布、钢索攀爬" }
+    ]
+  },
+  {
+    titleZh: "大峡谷Rim-to-Rim",
+    titleEn: "Grand Canyon Rim-to-Rim",
+    difficulty: "extreme",
+    distance: 38,
+    elevationGain: 1800,
+    duration: 2,
+    season: "春秋",
+    region: "亚利桑那",
+    country: "美国",
+    descriptionZh: "从大峡谷北缘穿越到南缘，世界上最壮丽的峡谷穿越。北缘2510m下到科罗拉多河730m，再爬上南缘2100m。",
+    descriptionEn: "Cross the Grand Canyon from North Rim to South Rim. Descend from 2510m to Colorado River at 730m, climb to South Rim at 2100m.",
+    coordinates: [
+        [-112.058, 36.21, 2510],
+        [-112.054, 36.202, 2200],
+        [-112.049, 36.192, 1620],
+        [-112.044, 36.182, 1020],
+        [-112.042, 36.176, 760],
+        [-112.04, 36.174, 730],
+        [-112.138, 36.071, 850],
+        [-112.134, 36.067, 1250],
+        [-112.13, 36.063, 1650],
+        [-112.126, 36.059, 2100]
+    ],
+    days: [
+        { dayNumber: 1, titleZh: "北缘→幻影牧场", titleEn: "North Rim→Phantom Ranch", description: "沿North Kaibab步道下到科罗拉多河边。约22km。", distance: 22, elevation: 200, highlights: "Ribbon Falls、科罗拉多河" },
+        { dayNumber: 2, titleZh: "幻影牧场→南缘", titleEn: "Phantom Ranch→South Rim", description: "沿Bright Angel步道爬升至南缘。约16km。", distance: 16, elevation: 1600, highlights: "Indian Garden、南缘日出" }
+    ]
+  },
+  {
+    titleZh: "巨魔之舌",
+    titleEn: "Trolltunga",
+    difficulty: "hard",
+    distance: 27,
+    elevationGain: 1100,
+    duration: 1,
+    season: "夏季",
+    region: "霍达兰",
+    country: "挪威",
+    descriptionZh: "挪威三大奇石之一。薄薄的岩石水平伸出悬崖700米之上，下面是湛蓝的Ringedalsvatnet湖。",
+    descriptionEn: "One of Norway's three legendary rocks. A thin ledge 700m above turquoise Ringedalsvatnet lake.",
+    coordinates: [
+        [6.752, 60.124, 490],
+        [6.746, 60.118, 630],
+        [6.74, 60.112, 780],
+        [6.734, 60.106, 930],
+        [6.728, 60.102, 1080],
+        [6.72, 60.098, 1170],
+        [6.71, 60.093, 1120],
+        [6.7, 60.088, 1070],
+        [6.694, 60.085, 1040]
+    ],
+    days: [
+        { dayNumber: 1, titleZh: "Skjeggedal→Trolltunga", titleEn: "Skjeggedal→Trolltunga", description: "从Skjeggedal出发登巨魔之舌后返回。全程27km，10-12小时。", distance: 27, elevation: 1100, highlights: "巨魔之舌岩石、Ringedalsvatnet湖" }
+    ]
+  },
+  {
+    titleZh: "艾格小径",
+    titleEn: "Eiger Trail",
+    difficulty: "moderate",
+    distance: 6,
+    elevationGain: 500,
+    duration: 1,
+    season: "夏季",
+    region: "伯尔尼高地",
+    country: "瑞士",
+    descriptionZh: "贴着艾格峰北壁脚下行走，仰望死亡之壁。阿尔卑斯最经典的短途徒步之一。",
+    descriptionEn: "Walk along the base of the Eiger's legendary North Face. One of the Alps' most iconic short hikes.",
+    coordinates: [
+        [7.974, 46.578, 1610],
+        [7.978, 46.574, 1740],
+        [7.984, 46.568, 1920],
+        [7.99, 46.562, 2100],
+        [7.996, 46.556, 2280],
+        [8.002, 46.55, 2350]
+    ],
+    days: [
+        { dayNumber: 1, titleZh: "Eigergletscher→Alpiglen", titleEn: "Eigergletscher→Alpiglen", description: "从Eigergletscher沿艾格北壁脚下走到Alpiglen。约6km，2-3小时。", distance: 6, elevation: 500, highlights: "艾格北壁、少女峰全景" }
+    ]
+  },
+  {
+    titleZh: "Salkantay Trek",
+    titleEn: "Salkantay Trek to Machu Picchu",
+    difficulty: "hard",
+    distance: 56,
+    elevationGain: 2800,
+    duration: 4,
+    season: "干季",
+    region: "库斯科",
+    country: "秘鲁",
+    descriptionZh: "印加古道外另一条通往马丘比丘的经典路线。翻越4630m的Salkantay垭口，从雪山冰川走到热带雨林。",
+    descriptionEn: "Alternative classic route to Machu Picchu. Cross 4630m Salkantay Pass from glaciers to rainforest.",
+    coordinates: [
+        [-72.551, -13.321, 3350],
+        [-72.546, -13.326, 3600],
+        [-72.541, -13.331, 4100],
+        [-72.536, -13.336, 4600],
+        [-72.531, -13.341, 3800],
+        [-72.526, -13.346, 2400],
+        [-72.522, -13.35, 1800]
+    ],
+    days: [
+        { dayNumber: 1, titleZh: "Mollepata→Soraypampa", titleEn: "Mollepata→Soraypampa", description: "徒步到Soraypampa营地。约12km。", distance: 12, elevation: 600, highlights: "Humantay湖" },
+        { dayNumber: 2, titleZh: "翻Salkantay垭口", titleEn: "Cross Salkantay Pass", description: "挑战4630m垭口后长距离下坡。约20km。", distance: 20, elevation: 1200, highlights: "Salkantay垭口" },
+        { dayNumber: 3, titleZh: "云雾森林→La Playa", titleEn: "Cloud Forest→La Playa", description: "穿过云雾森林到热带。约16km。", distance: 16, elevation: 600, highlights: "云雾森林、咖啡园" },
+        { dayNumber: 4, titleZh: "La Playa→热水镇", titleEn: "La Playa→Aguas Calientes", description: "沿铁路走到热水镇。约8km。", distance: 8, elevation: 400, highlights: "乌鲁班巴河、热水镇" }
+    ]
+  },
+  {
+    titleZh: "贡嘎大环线",
+    titleEn: "Gongga Shan Circuit",
+    difficulty: "extreme",
+    distance: 86,
+    elevationGain: 4500,
+    duration: 7,
+    season: "夏秋",
+    region: "四川",
+    country: "中国",
+    descriptionZh: "蜀山之王——贡嘎雪山（7556m）大环线，中国最壮丽的高海拔徒步路线之一。穿越4950m日乌且垭口。",
+    descriptionEn: "Circuit around the King of Sichuan Mountains. Cross 4950m Riwuqie Pass to Gongga Monastery.",
+    coordinates: [
+        [101.842, 29.562, 3200],
+        [101.851, 29.556, 3500],
+        [101.86, 29.55, 3800],
+        [101.869, 29.544, 4100],
+        [101.881, 29.536, 4550],
+        [101.893, 29.528, 4800],
+        [101.899, 29.524, 4400],
+        [101.908, 29.518, 3700],
+        [101.92, 29.51, 3400],
+        [101.929, 29.504, 3100]
+    ],
+    days: [
+        { dayNumber: 1, titleZh: "老榆林→格西草原", titleEn: "Laoyulin→Gexi", description: "沿榆林河谷到格西草原。约10km。", distance: 10, elevation: 400, highlights: "格西草原" },
+        { dayNumber: 2, titleZh: "格西草原→上日乌且", titleEn: "Gexi→Upper Riwuqie", description: "向垭口方向推进。约12km。", distance: 12, elevation: 600, highlights: "小贡嘎、嘉子峰" },
+        { dayNumber: 3, titleZh: "翻日乌且垭口", titleEn: "Cross Riwuqie", description: "挑战4950m垭口。约14km。", distance: 14, elevation: 800, highlights: "日乌且垭口、贡嘎主峰" },
+        { dayNumber: 4, titleZh: "莫溪沟→贡嘎寺", titleEn: "Moxi→Monastery", description: "穿越原始森林到贡嘎寺。约16km。", distance: 16, elevation: 600, highlights: "贡嘎寺" },
+        { dayNumber: 5, titleZh: "贡嘎寺→子梅垭口", titleEn: "Monastery→Zimei", description: "上子梅垭口看日照金山。约8km。", distance: 8, elevation: 800, highlights: "子梅垭口" },
+        { dayNumber: 6, titleZh: "子梅垭口→巴王海", titleEn: "Zimei→Bawang Lake", description: "下山至巴王海。约14km。", distance: 14, elevation: 500, highlights: "巴王海倒影" },
+        { dayNumber: 7, titleZh: "巴王海→草科", titleEn: "Bawang→Caoke", description: "沿田湾河出山，泡温泉。约12km。", distance: 12, elevation: 800, highlights: "草科温泉" }
+    ]
+  },
+  {
+    titleZh: "喀纳斯徒步",
+    titleEn: "Kanas Lake Trek",
+    difficulty: "moderate",
+    distance: 32,
+    elevationGain: 1200,
+    duration: 3,
+    season: "夏秋",
+    region: "新疆",
+    country: "中国",
+    descriptionZh: "新疆最美徒步路线之一。从贾登峪经禾木村到喀纳斯湖。金色白桦林、翡翠河水、图瓦人木屋，秋色绝美。",
+    descriptionEn: "One of Xinjiang's most beautiful treks. Golden birch forests, emerald rivers, Tuvan log cabins.",
+    coordinates: [
+        [87.138, 48.574, 1600],
+        [87.144, 48.568, 1450],
+        [87.152, 48.56, 1250],
+        [87.16, 48.552, 1100],
+        [87.166, 48.546, 1040],
+        [87.174, 48.538, 960],
+        [87.184, 48.528, 860],
+        [87.196, 48.516, 740]
+    ],
+    days: [
+        { dayNumber: 1, titleZh: "贾登峪→禾木村", titleEn: "Jiadengyu→Hemu", description: "经布拉勒汉桥到禾木。约12km。", distance: 12, elevation: 400, highlights: "禾木村、白桦林" },
+        { dayNumber: 2, titleZh: "禾木→小黑湖", titleEn: "Hemu→Black Lake", description: "翻越达坂到小黑湖。约10km。", distance: 10, elevation: 500, highlights: "小黑湖、高山牧场" },
+        { dayNumber: 3, titleZh: "小黑湖→喀纳斯", titleEn: "Black Lake→Kanas", description: "下到喀纳斯湖畔。约10km。", distance: 10, elevation: 300, highlights: "喀纳斯湖、月亮湾" }
+    ]
+  },
 ];
 
 async function main() {

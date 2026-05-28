@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  clerkId   String   @unique
+  username  String?
+  avatar    String?
+  bio       String?
+  role      String   @default("user")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trails       Trail[]
+  reviews      Review[]
+  planSessions AIPlanSession[]
+  favorites    Favorite[]
+}
+
+model Trail {
+  id             String   @id @default(uuid())
+  titleZh        String
+  titleEn        String?
+  descriptionZh  String?
+  descriptionEn  String?
+  difficulty     String   @default("moderate")
+  distance       Float?
+  elevationGain  Float?
+  duration       Int?
+  season         String?
+  region         String?
+  country        String?
+  coverImage     String?
+  status         String   @default("seed")
+  authorId       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  author      User?       @relation(fields: [authorId], references: [id])
+  days        TrailDay[]
+  reviews     Review[]
+  favorites   Favorite[]
+  gpxTrack    GPXTrack?
+  coordinates TrailCoordinate[]
+}
+
+model TrailDay {
+  id          String @id @default(uuid())
+  trailId     String
+  dayNumber   Int
+  titleZh     String?
+  titleEn     String?
+  description String?
+  distance    Float?
+  elevation   Float?
+  highlights  String?
+
+  trail Trail @relation(fields: [trailId], references: [id], onDelete: Cascade)
+
+  @@index([trailId])
+}
+
+model TrailCoordinate {
+  id        String  @id @default(uuid())
+  trailId   String
+  latitude  Float
+  longitude Float
+  elevation Float?
+  order     Int
+
+  trail Trail @relation(fields: [trailId], references: [id], onDelete: Cascade)
+
+  @@index([trailId])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  trailId   String
+  userId    String
+  rating    Int
+  content   String?
+  createdAt DateTime @default(now())
+
+  trail Trail @relation(fields: [trailId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([trailId])
+  @@index([userId])
+}
+
+model AIPlanSession {
+  id        String   @id @default(uuid())
+  userId    String
+  input     String
+  output    String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  trailId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trail Trail @relation(fields: [trailId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, trailId])
+  @@index([userId])
+  @@index([trailId])
+}
+
+model GPXTrack {
+  id        String   @id @default(uuid())
+  trailId   String   @unique
+  rawData   String
+  waypoints String?
+  createdAt DateTime @default(now())
+
+  trail Trail @relation(fields: [trailId], references: [id], onDelete: Cascade)
+}

@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: hiking-api
+    env: node
+    region: singapore
+    buildCommand: npm install && npx prisma generate
+    startCommand: npx prisma db push && npx tsx src/server.ts
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: hiking-db
+          property: connectionString
+
+databases:
+  - name: hiking-db
+    plan: free

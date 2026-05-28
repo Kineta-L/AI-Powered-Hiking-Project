@@ -1,0 +1,1 @@
+web: npx prisma db push && npx tsx src/server.ts

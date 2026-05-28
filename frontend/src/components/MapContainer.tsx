@@ -52,9 +52,9 @@ export default function MapContainer({
         sources: {
           tf: {
             type: 'raster',
-            tiles: ['https://tile.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey=' + import.meta.env.VITE_THUNDERFOREST_API_KEY],
+            tiles: ['https://tile.opentopomap.org/{z}/{x}/{y}.png'],
             tileSize: 256,
-            attribution: '© Thunderforest, © OpenStreetMap contributors',
+            attribution: '© OpenTopoMap, © OpenStreetMap contributors',
           },
         },
         layers: [
@@ -73,28 +73,8 @@ export default function MapContainer({
     });
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
-    // Fallback: if Thunderforest tiles fail to load, switch to OpenTopoMap
-    let tileFailed = false;
-    map.on('error', (e: any) => {
-      if (e?.tile && !tileFailed) {
-        tileFailed = true;
-        console.warn('[Map] Thunderforest tile failed, switching to OpenTopoMap');
-        const topoSource: any = map.getSource('tf');
-        if (topoSource) {
-          topoSource.setTiles(['https://tile.opentopomap.org/{z}/{x}/{y}.png']);
-          topoSource.setAttribution('© OpenTopoMap');
-        }
-      }
-    });
 
-    // Validate Thunderforest key - if missing, the tile requests will fail.
-    // With valid key, Thunderforest Outdoors shows: trails (red dashed), contours, terrain shading
-    if (import.meta.env.VITE_THUNDERFOREST_API_KEY && import.meta.env.VITE_THUNDERFOREST_API_KEY.length > 20) {
-      console.log('[Map] Using Thunderforest Outdoors');
-    } else {
-      console.warn('[Map] Thunderforest key missing, map tiles may not load');
-    }
-
+    console.log('[Map] Using OpenTopoMap (contours + terrain, no red trails)');
 
     // Fit-to-route button
     const fitBtn = document.createElement('div');

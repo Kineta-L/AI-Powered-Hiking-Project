@@ -4,6 +4,7 @@ import { useUser } from '@clerk/clerk-react';
 import MapContainer from '../components/MapContainer';
 import { geocode } from '../lib/geocode';
 import { getHikingPath } from '../lib/trailRouter';
+import { downloadWordDoc } from '../lib/download';
 
 interface RoutePoint { name: string; lat: number; lng: number; type: string; }
 interface PlanResult {
@@ -216,6 +217,18 @@ export default function PlannerPage() {
                   </div>
                 </div>
               )}
+
+              {/* Download button */}
+              <div className="flex justify-end">
+                <button
+                  onClick={() => downloadWordDoc(result, destination, days, fitness, isZh ? 'zh' : 'en')}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 text-sm font-medium hover:bg-amber-500/25 transition-all"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                  {isZh ? '下载攻略' : 'Download Plan'}
+                </button>
+              </div>
+
               {result.days && result.days.length > 0 && (
                 <div>
                   <h3 className="font-display text-sm font-semibold text-amber-400 mb-3 uppercase tracking-wider">{t('planner.itinerary')}</h3>

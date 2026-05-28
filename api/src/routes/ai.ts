@@ -64,6 +64,20 @@ aiRouter.post('/plan', async (req: Request, res: Response) => {
   } catch (e: any) { console.warn('[AI] Seed lookup:', e.message); }
 
   // Build system prompt with seed trail data if available
+
+  // If seed trail matched, clip a segment based on user fitness & send real coords directly
+  let seedRouteCoords: [number, number][] | null = null;
+  let seedRouteEngine = '';
+  if (seedTrailData && seedTrailData.coordinates?.length > 0) {
+    const coords: { lat: number; lng: number }[] = seedTrailData.coordinates;
+    const totalTrailKm = seedTrailData.distance || 0;
+    const targetKm = Math.round((minTotalKm + maxTotalKm) / 2);
+    const ratio = totalTrailKm > 0 ? Math.min(1, targetKm / totalTrailKm) : 1;
+    const clipCount = Math.max(4, Math.round(coords.length * ratio));
+    seedRouteCoords = coords.slice(0, clipCount).map(c => [c.lng, c.lat] as [number, number]);
+    seedRouteEngine = 'seed_clipped';
+    console.log('[AI] Seed clip: ' + totalTrailKm + 'km trail, target ' + targetKm + 'km, using ' + clipCount + '/' + coords.length + ' coords');
+  }
   let systemPrompt: string;
 
   if (language === 'zh') {
@@ -100,6 +114,15 @@ aiRouter.post('/plan', async (req: Request, res: Response) => {
       ' If the classic trail is longer, you MUST clip a ' + minTotalKm + '-' + maxTotalKm + 'km continuous segment. NOT the whole trail!' +
       '\n\nRoute: single continuous one-way, no branches. routePoints every 1.5-3km, ~' + maxRoutePoints + ' points.' +
       '\n\nReturn ONLY JSON {"overview":"explain segment choice with distance","difficulty":"","totalDistance":number (MUST be ' + minTotalKm + '-' + maxTotalKm + ')","totalElevation":0,"bestSeason":"","days":[...],"gearList":[],"safetyTips":[],"routePoints":[{"name":"","lat":0,"lng":0,"type":"start/camp/end"}]}';
+  }
+
+  // Send seed route coordinates immediately if available
+  if (seedRouteCoords) {
+    res.write('data: ' + JSON.stringify({
+      type: 'seed_route',
+      coordinates: seedRouteCoords,
+      engine: seedRouteEngine,
+    }) + '\n\n');
   }
 
   try {

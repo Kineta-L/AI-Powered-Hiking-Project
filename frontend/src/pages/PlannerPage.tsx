@@ -55,8 +55,14 @@ export default function PlannerPage() {
     }, 800);
   }, []);
 
+  // Track if we already have a seed route path
+  const [hasSeedPath, setHasSeedPath] = useState(false);
+
   // Update map when AI generates route points - fetch real trail paths
   useEffect(() => {
+    // Skip OSRM if we already have real seed coordinates
+    if (hasSeedPath) return;
+    
     if (result?.routePoints && result.routePoints.length > 0) {
       // Validate distance matches days+fitness
       const fitnessDist: Record<string, [number, number]> = {
@@ -86,7 +92,7 @@ export default function PlannerPage() {
 
   const generate = async () => {
     if (!destination.trim()) return;
-    setGenerating(true); setError(''); setContent(''); setResult(null); setShowResults(false);
+    setGenerating(true); setError(''); setContent(''); setResult(null); setShowResults(false); setHasSeedPath(false); setTrailPath(undefined);
 
     try {
       const res = await fetch('/api/ai/plan', {
@@ -109,6 +115,12 @@ export default function PlannerPage() {
           if (!line.startsWith('data: ')) continue;
           try {
             const data = JSON.parse(line.slice(6));
+            if (data.type === 'seed_route' && data.coordinates) {
+              // Use real seed coordinates directly - no OSRM needed
+              setTrailPath(data.coordinates);
+              setHasSeedPath(true);
+              console.log('[Planner] Got real seed route:', data.coordinates.length, 'coords');
+            }
             if (data.type === 'content') { fullText += data.content; setContent(fullText); }
             else if (data.type === 'done') {
               try { const cleaned = fullText.replace(/```json|```/g, '').trim(); setResult(JSON.parse(cleaned)); } catch {}

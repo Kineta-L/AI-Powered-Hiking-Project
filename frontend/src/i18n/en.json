@@ -1,0 +1,12 @@
+{
+  "app": { "title": "AI Hiking Guide", "subtitle": "Explore classic hiking trails worldwide" },
+  "nav": { "home": "Home", "trails": "Explore", "planner": "AI Planner", "upload": "Upload", "profile": "Profile", "login": "Sign In", "logout": "Sign Out" },
+  "home": { "hero": "Discover Your Next Hiking Journey", "heroSub": "AI-powered hiking trip planning, from Tiger Leaping Gorge to Tour du Mont Blanc", "searchPlaceholder": "Search trails, regions, or countries...", "startPlan": "Start AI Planning", "featuredTrails": "Featured Trails", "viewAll": "View All" },
+  "trails": { "title": "Explore Trails", "filterRegion": "Region", "filterDifficulty": "Difficulty", "filterSeason": "Season", "allRegions": "All Regions", "allDifficulties": "All Difficulties", "allSeasons": "All Seasons", "noResults": "No matching trails found" },
+  "difficulty": { "easy": "Easy", "moderate": "Moderate", "hard": "Hard", "expert": "Expert" },
+  "seasons": { "spring": "Spring", "summer": "Summer", "autumn": "Autumn", "winter": "Winter", "all_year": "All Year" },
+  "planner": { "title": "AI Hiking Planner", "destination": "Destination", "days": "Days", "fitness": "Fitness Level", "preferences": "Preferences (optional)", "generate": "Generate Itinerary", "generating": "Generating...", "overview": "Overview", "itinerary": "Daily Itinerary", "gear": "Gear List", "safety": "Safety Tips", "day": "Day {{n}}", "distance": "Distance", "elevation": "Elevation" },
+  "fitness": { "beginner": "Beginner", "intermediate": "Intermediate", "advanced": "Advanced", "expert": "Expert" },
+  "trail": { "detail": "Trail Detail", "overview": "Overview", "days": "Daily Plan", "reviews": "Reviews", "writeReview": "Write a Review", "submitReview": "Submit", "favorite": "Favorite", "unfavorite": "Unfavorite", "distance": "Distance", "elevationGain": "Elevation Gain", "duration": "Duration", "bestSeason": "Best Season", "difficulty": "Difficulty", "region": "Region", "noReviews": "No reviews yet" },
+  "common": { "loading": "Loading...", "error": "Something went wrong", "save": "Save", "cancel": "Cancel", "submit": "Submit" }
+}

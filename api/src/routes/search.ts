@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../server';
+import { standardizeTrailForResponse, trailMatchesSearch } from '../utils/trailStandardization';
 
 export const searchRouter = Router();
 
@@ -24,14 +25,9 @@ searchRouter.get('/', async (req: Request, res: Response) => {
     const { q } = req.query;
     if (!q || String(q).length < 2) return res.json({ results: [] });
     const trails = await prisma.trail.findMany({
-      where: { OR: [
-        { titleZh: { contains: String(q) } }, { titleEn: { contains: String(q) } },
-        { descriptionZh: { contains: String(q) } }, { descriptionEn: { contains: String(q) } },
-        { region: { contains: String(q) } }, { country: { contains: String(q) } },
-      ] },
       include: { _count: { select: { reviews: true, favorites: true } } },
-      take: 20, orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' },
     });
-    res.json({ results: trails });
+    res.json({ results: trails.filter(trail => trailMatchesSearch(trail, q)).slice(0, 20).map(standardizeTrailForResponse) });
   } catch { res.status(500).json({ error: 'Search failed' }); }
 });

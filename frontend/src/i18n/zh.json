@@ -1,0 +1,12 @@
+{
+  "app": { "title": "KinTrail", "subtitle": "探索全球经典徒步路线" },
+  "nav": { "home": "首页", "trails": "路线探索", "planner": "AI 规划", "upload": "发布攻略", "profile": "我的", "login": "登录", "logout": "退出" },
+  "home": { "hero": "发现你的下一段徒步旅程", "heroSub": "AI 驱动的徒步路线规划，从虎跳峡到环勃朗峰", "searchPlaceholder": "搜索路线、地区或国家...", "startPlan": "开始 AI 规划", "featuredTrails": "精选路线", "viewAll": "查看全部" },
+  "trails": { "title": "路线探索", "filterRegion": "地区", "filterDifficulty": "难度", "filterSeason": "季节", "allRegions": "全部地区", "allDifficulties": "全部难度", "allSeasons": "全部季节", "noResults": "未找到匹配的路线" },
+  "difficulty": { "easy": "简单", "moderate": "中等", "hard": "困难", "expert": "专家" },
+  "seasons": { "spring": "春季", "summer": "夏季", "autumn": "秋季", "winter": "冬季", "all_year": "全年" },
+  "planner": { "title": "KinTrail AI 规划", "destination": "目的地", "days": "天数", "fitness": "体能水平", "preferences": "偏好（选填）", "generate": "生成行程", "generating": "生成中...", "overview": "概述", "itinerary": "每日行程", "gear": "装备清单", "safety": "安全提示", "day": "第{{n}}天", "distance": "距离", "elevation": "爬升" },
+  "fitness": { "beginner": "新手", "intermediate": "中级", "advanced": "高级", "expert": "专家级" },
+  "trail": { "detail": "路线详情", "overview": "概述", "days": "每日行程", "reviews": "评论", "writeReview": "写评论", "submitReview": "提交", "favorite": "收藏", "unfavorite": "取消收藏", "distance": "距离", "elevationGain": "累计爬升", "duration": "时长", "bestSeason": "最佳季节", "difficulty": "难度", "region": "地区", "noReviews": "暂无评论" },
+  "common": { "loading": "加载中...", "error": "出错了", "save": "保存", "cancel": "取消", "submit": "提交" }
+}

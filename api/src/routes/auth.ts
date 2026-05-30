@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { Webhook } from 'svix';
 import { prisma } from '../server';
 
 export const authRouter = Router();
@@ -6,7 +7,32 @@ export const authRouter = Router();
 // POST /api/auth/webhook — Clerk user sync
 authRouter.post('/webhook', async (req: Request, res: Response) => {
   try {
-    const { type, data } = req.body;
+    const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      return res.status(500).json({ error: 'Clerk webhook secret not configured' });
+    }
+
+    const svixId = req.header('svix-id');
+    const svixTimestamp = req.header('svix-timestamp');
+    const svixSignature = req.header('svix-signature');
+    const rawBody = (req as Request & { rawBody?: string }).rawBody;
+
+    if (!svixId || !svixTimestamp || !svixSignature || !rawBody) {
+      return res.status(400).json({ error: 'Missing webhook signature headers' });
+    }
+
+    let event: any;
+    try {
+      event = new Webhook(webhookSecret).verify(rawBody, {
+        'svix-id': svixId,
+        'svix-timestamp': svixTimestamp,
+        'svix-signature': svixSignature,
+      });
+    } catch {
+      return res.status(400).json({ error: 'Invalid webhook signature' });
+    }
+
+    const { type, data } = event;
 
     if (type === 'user.created' || type === 'user.updated') {
       const { id: clerkId, username, image_url: avatar } = data;

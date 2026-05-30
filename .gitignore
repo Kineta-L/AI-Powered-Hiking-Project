@@ -1,6 +1,9 @@
-node_modules
-dist
-*.db
-*.db-journal
+﻿node_modules/
+dist/
+*.tsbuildinfo
 .env
-server.log
+.env.*
+!.env.example
+*.log
+.DS_Store
+uploads/

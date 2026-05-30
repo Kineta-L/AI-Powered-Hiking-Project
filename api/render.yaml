@@ -3,8 +3,8 @@ services:
     name: hiking-api
     env: node
     region: singapore
-    buildCommand: npm install && npx prisma generate
-    startCommand: npx prisma db push && npx tsx src/server.ts
+    buildCommand: npm install && npx prisma generate && npm run build && npx prisma db push
+    startCommand: npm start
     plan: free
     envVars:
       - key: NODE_ENV

@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../server';
+import { parseGPX } from '../services/gpx';
+import { standardizeDifficulty, standardizeTrailForResponse, trailMatchesFilters, trailMatchesSearch } from '../utils/trailStandardization';
 
 export const trailsRouter = Router();
 
@@ -7,35 +9,30 @@ export const trailsRouter = Router();
 trailsRouter.get('/', async (req: Request, res: Response) => {
   try {
     const { region, difficulty, season, search, page = '1', limit = '20' } = req.query as Record<string, string>;
-    const skip = (Number(page) - 1) * Number(limit);
+    const currentPage = Math.max(1, Number(page) || 1);
+    const pageSize = Math.min(50, Math.max(1, Number(limit) || 20));
+    const skip = (currentPage - 1) * pageSize;
 
-    const where: any = {};
-    if (region) where.region = String(region);
-    if (difficulty) where.difficulty = String(difficulty);
-    if (season) where.season = String(season);
-    if (search) {
-      where.OR = [
-        { titleZh: { contains: String(search) } },
-        { titleEn: { contains: String(search) } },
-        { descriptionZh: { contains: String(search) } },
-      ];
-    }
+    const allTrails = await prisma.trail.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        author: { select: { id: true, username: true, avatar: true } },
+        coordinates: { orderBy: { order: 'asc' }, select: { latitude: true, longitude: true } },
+        _count: { select: { reviews: true, favorites: true } },
+      },
+    });
 
-    const [trails, total] = await Promise.all([
-      prisma.trail.findMany({
-        where,
-        skip,
-        take: Number(limit),
-        orderBy: { createdAt: 'desc' },
-        include: {
-          author: { select: { id: true, username: true, avatar: true } },
-          _count: { select: { reviews: true, favorites: true } },
-        },
-      }),
-      prisma.trail.count({ where }),
-    ]);
+    const filtered = allTrails
+      .filter(trail => trailMatchesSearch(trail, search))
+      .filter(trail => trailMatchesFilters(trail, { region, difficulty, season }))
+      .map(standardizeTrailForResponse);
 
-    res.json({ trails, total, page: Number(page), totalPages: Math.ceil(total / Number(limit)) });
+    res.json({
+      trails: filtered.slice(skip, skip + pageSize),
+      total: filtered.length,
+      page: currentPage,
+      totalPages: Math.ceil(filtered.length / pageSize),
+    });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch trails' });
   }
@@ -111,6 +108,72 @@ trailsRouter.post('/route', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/trails/upload - upload trail with GPX
+trailsRouter.post('/upload', async (req: Request, res: Response) => {
+  try {
+    const { titleZh, titleEn, descriptionZh, descriptionEn, difficulty, region, country,
+      authorId, gpxData } = req.body;
+
+    if (!gpxData || typeof gpxData !== 'string') {
+      return res.status(400).json({ error: 'GPX data is required' });
+    }
+
+    const parsed = await parseGPX(gpxData);
+    if (parsed.trackPoints.length < 2) {
+      return res.status(400).json({ error: 'GPX must include at least 2 track or route points' });
+    }
+
+    const trailTitle = titleZh?.trim() || parsed.name || 'Uploaded GPX Trail';
+    const coordinates = parsed.trackPoints.map((point, index) => ({
+      latitude: point.lat,
+      longitude: point.lon,
+      elevation: point.ele,
+      order: index,
+    }));
+
+    const trail = await prisma.trail.create({
+      data: {
+        titleZh: trailTitle,
+        titleEn,
+        descriptionZh,
+        descriptionEn,
+        difficulty: standardizeDifficulty(difficulty),
+        distance: parsed.totalDistance,
+        elevationGain: parsed.elevationGain,
+        duration: 1,
+        region: region?.trim() || null,
+        country: country?.trim() || null,
+        authorId,
+        status: 'user',
+        coordinates: { create: coordinates },
+        days: {
+          create: [{
+            dayNumber: 1,
+            titleZh: trailTitle,
+            titleEn: titleEn || parsed.name,
+            description: descriptionZh || descriptionEn || null,
+            distance: parsed.totalDistance,
+            elevation: parsed.elevationGain,
+            highlights: parsed.waypoints.map(w => w.name).filter(Boolean).join(', ') || null,
+          }],
+        },
+        gpxTrack: {
+          create: {
+            rawData: gpxData,
+            waypoints: parsed.waypoints.length ? JSON.stringify(parsed.waypoints) : null,
+          },
+        },
+      },
+      include: { days: true, coordinates: true, gpxTrack: true },
+    });
+
+    res.status(201).json(trail);
+  } catch (error: any) {
+    console.error(error);
+    res.status(400).json({ error: error.message || 'Failed to upload trail' });
+  }
+});
+
 // GET /api/trails/:id// GET /api/trails/:id// GET /api/trails/:id// Decode Valhalla encoded polyline6
 function decodePolyline(encoded: string): [number, number][] {
   const coords: [number, number][] = [];
@@ -167,7 +230,7 @@ trailsRouter.get('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Trail not found' });
     }
 
-    res.json(trail);
+    res.json(standardizeTrailForResponse(trail));
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch trail' });
   }
@@ -185,13 +248,13 @@ trailsRouter.post('/', async (req: Request, res: Response) => {
         titleEn,
         descriptionZh,
         descriptionEn,
-        difficulty: difficulty || 'moderate',
+        difficulty: standardizeDifficulty(difficulty),
         distance,
         elevationGain,
         duration,
         season,
-        region,
-        country,
+        region: region?.trim() || null,
+        country: country?.trim() || null,
         coverImage,
         authorId,
         status: authorId ? 'user' : 'seed',
@@ -226,35 +289,3 @@ trailsRouter.post('/', async (req: Request, res: Response) => {
 });
 
 // POST /api/trails/upload — upload trail with GPX
-trailsRouter.post('/upload', async (req: Request, res: Response) => {
-  try {
-    const { titleZh, titleEn, descriptionZh, descriptionEn, difficulty, region, country,
-      authorId, gpxData, gpxWaypoints } = req.body;
-
-    const trail = await prisma.trail.create({
-      data: {
-        titleZh,
-        titleEn,
-        descriptionZh,
-        descriptionEn,
-        difficulty: difficulty || 'moderate',
-        region,
-        country,
-        authorId,
-        status: 'user',
-        gpxTrack: gpxData ? {
-          create: {
-            rawData: gpxData,
-            waypoints: gpxWaypoints || null,
-          },
-        } : undefined,
-      },
-      include: { gpxTrack: true },
-    });
-
-    res.status(201).json(trail);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to upload trail' });
-  }
-});

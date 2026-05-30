@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useUser, SignInButton } from '@clerk/clerk-react';
+import { apiFetch } from '../lib/api';
 
 export default function UploadPage() {
   const { t, i18n } = useTranslation();
@@ -16,6 +17,7 @@ export default function UploadPage() {
   const [region, setRegion] = useState('');
   const [country, setCountry] = useState('');
   const [gpxContent, setGpxContent] = useState('');
+  const [gpxFileName, setGpxFileName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -30,17 +32,38 @@ export default function UploadPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!titleZh.trim()) return;
+    if (!gpxContent.trim()) {
+      setError('Please upload or paste a GPX track.');
+      return;
+    }
     setSubmitting(true); setError('');
     try {
-      const meRes = await fetch(`/api/auth/me?clerkId=${user.id}`);
+      const meRes = await apiFetch(`/api/auth/me?clerkId=${user.id}`);
       const meData = await meRes.json();
-      const body: any = { titleZh, titleEn: titleEn || undefined, descriptionZh: descZh || undefined, descriptionEn: descEn || undefined, difficulty, region: region || undefined, country: country || undefined, authorId: meData.id };
+      const body: any = {
+        titleZh: titleZh.trim(),
+        titleEn: titleEn.trim() || undefined,
+        descriptionZh: descZh.trim() || undefined,
+        descriptionEn: descEn.trim() || undefined,
+        difficulty,
+        region: region.trim() || undefined,
+        country: country.trim() || undefined,
+        authorId: meData.id,
+      };
       if (gpxContent.trim()) body.gpxData = gpxContent;
-      const res = await fetch('/api/trails/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      if (!res.ok) throw new Error('Upload failed');
-      navigate(`/trails/${(await res.json()).id}`);
+      const res = await apiFetch('/api/trails/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      navigate(`/trails/${data.id}`);
     } catch (e: any) { setError(e.message); }
     finally { setSubmitting(false); }
+  };
+
+  const handleGpxFile = async (file: File | undefined) => {
+    if (!file) return;
+    setError('');
+    setGpxFileName(file.name);
+    setGpxContent(await file.text());
   };
 
   return (
@@ -82,6 +105,13 @@ export default function UploadPage() {
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">{isZh ? 'GPX 轨迹（粘贴 XML）' : 'GPX Track (paste XML)'}</label>
+          <input
+            type="file"
+            accept=".gpx,application/gpx+xml,application/xml,text/xml"
+            onChange={e => handleGpxFile(e.target.files?.[0])}
+            className="mb-3 block w-full text-sm text-gray-400 file:mr-4 file:rounded-lg file:border-0 file:bg-amber-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black hover:file:bg-amber-400"
+          />
+          {gpxFileName && <p className="text-xs text-amber-400 mb-2">{gpxFileName}</p>}
           <textarea value={gpxContent} onChange={e => setGpxContent(e.target.value)} rows={5} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-mono text-xs focus:outline-none focus:border-amber-500/50 resize-none" placeholder={"<?xml version=\"1.0\"?>..."} />
         </div>
         <button type="submit" disabled={submitting || !titleZh.trim()}

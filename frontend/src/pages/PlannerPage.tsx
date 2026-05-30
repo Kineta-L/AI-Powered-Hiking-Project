@@ -3,15 +3,22 @@ import { useTranslation } from 'react-i18next';
 import { useUser } from '@clerk/clerk-react';
 import MapContainer from '../components/MapContainer';
 import { geocode } from '../lib/geocode';
-import { getHikingPath, TrailRouteResult } from '../lib/trailRouter';
+import { apiFetch } from '../lib/api';
+import { getHikingPath } from '../lib/trailRouter';
 import { downloadWordDoc } from '../lib/download';
 
 interface RoutePoint { name: string; lat: number; lng: number; type: string; }
 interface PlanResult {
   overview?: string; difficulty?: string; totalDistance?: number; totalElevation?: number; bestSeason?: string;
   days?: { day: number; title: string; description: string; distance: number; elevation: number; highlights: string }[];
-  gearList?: string[]; safetyTips?: string[]; routePoints?: RoutePoint[];
+  gearList?: string[]; safetyTips?: string[]; routePoints?: RoutePoint[]; validationWarnings?: string[];
 }
+
+type RouteTrust = {
+  quality: 'verified' | 'routed' | 'estimated' | 'none';
+  label: string;
+  message: string;
+};
 
 const FITNESS_LEVELS = ['beginner', 'intermediate', 'advanced', 'expert'];
 
@@ -36,11 +43,14 @@ export default function PlannerPage() {
   const [geocoding, setGeocoding] = useState(false);
   const [trailPath, setTrailPath] = useState<[number, number][] | undefined>();
   const [routeEngine, setRouteEngine] = useState<'seed' | 'osrm' | 'waypoints' | 'none'>('none');
+  const [routeTrust, setRouteTrust] = useState<RouteTrust | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const seedPathRef = useRef<[number, number][] | undefined>(undefined);
+  const planReceivedRef = useRef(false);
 
   useEffect(() => {
-    if (user) fetch(`/api/auth/me?clerkId=${user.id}`).then(r => r.json()).then(d => setUserId(d.id));
+    if (user) apiFetch(`/api/auth/me?clerkId=${user.id}`).then(r => r.json()).then(d => setUserId(d.id));
   }, [user]);
 
   // Geocode on destination change
@@ -84,19 +94,44 @@ export default function PlannerPage() {
       setMapCenter(pts);
       // Fetch real hiking trail between all waypoints
       getHikingPath(routePoints.map(p => ({ lat: p.lat, lng: p.lng })))
-        .then(result => { setTrailPath(result.path); setRouteEngine(result.engine); });
+        .then(result => {
+          setTrailPath(result.path);
+          setRouteEngine(result.engine);
+          if (result.engine === 'osrm') {
+            setRouteTrust({
+              quality: 'routed',
+              label: isZh ? 'OSM 路网匹配' : 'OSM routed',
+              message: isZh ? '路线已匹配到 OpenStreetMap 路网，可信度中高。' : 'Route matched OpenStreetMap routing data.',
+            });
+          } else if (result.engine === 'waypoints') {
+            setRouteTrust({
+              quality: 'estimated',
+              label: isZh ? '估算路线' : 'Estimated route',
+              message: isZh ? '没有找到可用路网，仅使用 AI 坐标点估算，请出行前核对官方轨迹。' : 'No routable path was found. Verify with an official GPX before hiking.',
+            });
+          } else {
+            setRouteTrust({
+              quality: 'none',
+              label: isZh ? '暂无可信路线' : 'No trusted route',
+              message: isZh ? 'AI 未提供足够路线点，地图不会绘制实线。' : 'Not enough route data to draw a trusted path.',
+            });
+          }
+        });
     } else {
       setTrailPath(undefined); setRouteEngine('none');
+      setRouteTrust(null);
     }
-  }, [result, hasSeedPath]);
+  }, [result, hasSeedPath, days, fitness, isZh]);
   
 
   const generate = async () => {
     if (!destination.trim()) return;
-    setGenerating(true); setError(''); setContent(''); setResult(null); setShowResults(false); setHasSeedPath(false); setTrailPath(undefined); setRouteEngine('none');
+    seedPathRef.current = undefined;
+    planReceivedRef.current = false;
+    setGenerating(true); setError(''); setContent(''); setResult(null); setShowResults(false); setHasSeedPath(false); setTrailPath(undefined); setRouteEngine('none'); setRouteTrust(null);
 
     try {
-      const res = await fetch('/api/ai/plan', {
+      const res = await apiFetch('/api/ai/plan', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ destination, days, fitness, preferences, language: isZh ? 'zh' : 'en', userId }),
       });
@@ -117,16 +152,62 @@ export default function PlannerPage() {
           try {
             const data = JSON.parse(line.slice(6));
             if (data.type === 'seed_route' && data.coordinates) {
-              // Use real seed coordinates directly - no OSRM needed
+              // Keep the database route as the source of truth for known classic trails.
+              seedPathRef.current = data.coordinates;
               setTrailPath(data.coordinates);
               setRouteEngine('seed');
               setHasSeedPath(true);
+              setRouteTrust({
+                quality: 'verified',
+                label: isZh ? '真实徒步路线' : 'Verified hiking route',
+                message: isZh ? '路线来自真实轨迹数据，可信度高。' : 'Route is based on known real trail geometry.',
+              });
               console.log('[Planner] Got real seed route:', data.coordinates.length, 'coords');
             }
+            if (data.type === 'route_quality') {
+              setRouteTrust({
+                quality: data.quality || 'none',
+                label: data.label,
+                message: data.message,
+              });
+            }
             if (data.type === 'content') { fullText += data.content; setContent(fullText); }
-            else if (data.type === 'done') {
-              try { const cleaned = fullText.replace(/```json|```/g, '').trim(); setResult(JSON.parse(cleaned)); } catch {}
+            else if (data.type === 'plan' && data.plan) {
+              const parsed = data.plan;
+              if (seedPathRef.current) {
+                parsed.routePoints = seedPathRef.current.map(([lng, lat]: [number, number], index: number) => ({
+                  name: index === 0 ? 'Start' : index === seedPathRef.current!.length - 1 ? 'End' : '',
+                  lat,
+                  lng,
+                  type: index === 0 ? 'start' : index === seedPathRef.current!.length - 1 ? 'end' : 'camp',
+                }));
+              }
+              planReceivedRef.current = true;
+              setResult(parsed);
               setShowResults(true);
+            }
+            else if (data.type === 'done') {
+              if (!planReceivedRef.current) {
+                try {
+                  const cleaned = fullText.replace(/```json|```/g, '').trim();
+                  const parsed = JSON.parse(cleaned);
+                  if (seedPathRef.current) {
+                    parsed.routePoints = seedPathRef.current.map(([lng, lat]: [number, number], index: number) => ({
+                      name: index === 0 ? 'Start' : index === seedPathRef.current!.length - 1 ? 'End' : '',
+                      lat,
+                      lng,
+                      type: index === 0 ? 'start' : index === seedPathRef.current!.length - 1 ? 'end' : 'camp',
+                    }));
+                  }
+                  setResult(parsed);
+                } catch {
+                  setError(isZh ? 'AI 返回的内容无法解析，请重试。' : 'The AI response could not be parsed. Please retry.');
+                }
+              }
+              setShowResults(true);
+            } else if (data.type === 'validation_error') {
+              setError(data.message || (isZh ? 'AI 返回的行程结构不完整，请重试。' : 'The AI returned an incomplete plan. Please retry.'));
+              setShowResults(false);
             } else if (data.type === 'error') { setError(data.message); }
           } catch {}
         }
@@ -145,19 +226,19 @@ export default function PlannerPage() {
   const mapCoords = mapCenter;
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] relative flex">
-      <div className="absolute inset-0 z-0">
+    <div className="min-h-[calc(100vh-3.5rem)] md:h-[calc(100vh-3.5rem)] relative flex flex-col md:flex-row">
+      <div className="relative order-2 h-[45vh] min-h-80 z-0 md:absolute md:inset-0 md:order-none md:h-auto">
         <MapContainer coordinates={mapCoords} trailPath={trailPath} totalDays={days} showDayMarkers={false} showMarkers={false} routeQuality={routeEngine} interactive={true} fitBounds={!!(result?.routePoints && result.routePoints.length > 0)}
         />
       </div>
 
-      <div className="relative z-10 w-full md:w-[440px] h-full glass border-r border-white/5 flex flex-col shrink-0">
-        <div className="p-6 pb-4">
+      <div className="relative order-1 z-10 w-full md:w-[440px] md:h-full glass border-b md:border-b-0 md:border-r border-white/5 flex flex-col shrink-0">
+        <div className="p-4 md:p-6 md:pb-4">
           <h1 className="font-display text-2xl font-bold tracking-tight text-white">🧠 {t('planner.title')}</h1>
           <p className="text-sm text-gray-400 mt-1">{isZh ? '输入需求，AI 实时生成徒步行程' : 'AI-powered hiking trip planner'}</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 pb-6" ref={contentRef}>
+        <div className="flex-1 overflow-visible px-4 pb-5 md:overflow-y-auto md:px-6 md:pb-6" ref={contentRef}>
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">
@@ -174,15 +255,15 @@ export default function PlannerPage() {
               <div>
                 <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">{t('planner.days')}</label>
                 <select value={days} onChange={e => setDays(Number(e.target.value))}
-                  className="w-full px-3 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-amber-500/50 text-sm">
-                  {[1,2,3,4,5,6,7,8,10,12,14,18,21].map(n => <option key={n} value={n}>{n} {isZh ? '天' : 'd'}</option>)}
+                  className="w-full px-3 py-3 rounded-xl bg-zinc-900/80 border border-white/10 text-white focus:outline-none focus:border-amber-500/50 text-sm">
+                  {[1,2,3,4,5,6,7,8,10,12,14,18,21].map(n => <option className="bg-zinc-900 text-white" key={n} value={n}>{n} {isZh ? '天' : 'd'}</option>)}
                 </select>
               </div>
               <div className="col-span-2">
                 <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wider">{t('planner.fitness')}</label>
                 <select value={fitness} onChange={e => setFitness(e.target.value)}
-                  className="w-full px-3 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-amber-500/50 text-sm">
-                  {FITNESS_LEVELS.map(f => <option key={f} value={f}>{t(`fitness.${f}`, f)}</option>)}
+                  className="w-full px-3 py-3 rounded-xl bg-zinc-900/80 border border-white/10 text-white focus:outline-none focus:border-amber-500/50 text-sm">
+                  {FITNESS_LEVELS.map(f => <option className="bg-zinc-900 text-white" key={f} value={f}>{t(`fitness.${f}`, f)}</option>)}
                 </select>
               </div>
             </div>
@@ -229,6 +310,22 @@ export default function PlannerPage() {
                     {result.totalElevation && <span className="px-2.5 py-1 rounded-lg bg-white/5 text-xs text-gray-300 border border-white/5">⛰️ +{result.totalElevation}m</span>}
                     {result.bestSeason && <span className="px-2.5 py-1 rounded-lg bg-white/5 text-xs text-gray-300 border border-white/5">🌤️ {result.bestSeason}</span>}
                   </div>
+                  {routeTrust && (
+                    <div className={`mt-3 rounded-lg border px-3 py-2 text-xs ${
+                      routeTrust.quality === 'verified' ? 'bg-emerald-500/15 text-emerald-200 border-emerald-500/25' :
+                      routeTrust.quality === 'routed' ? 'bg-sky-500/15 text-sky-200 border-sky-500/25' :
+                      routeTrust.quality === 'estimated' ? 'bg-amber-500/15 text-amber-200 border-amber-500/25' :
+                      'bg-white/5 text-gray-300 border-white/5'
+                    }`}>
+                      <span className="font-medium">{routeTrust.label}</span>
+                      <span className="ml-2 text-gray-300">{routeTrust.message}</span>
+                    </div>
+                  )}
+                  {result.validationWarnings && result.validationWarnings.length > 0 && (
+                    <div className="mt-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                      {result.validationWarnings[0]}
+                    </div>
+                  )}
                 </div>
               )}
 

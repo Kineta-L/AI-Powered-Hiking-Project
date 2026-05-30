@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useUser, SignInButton } from '@clerk/clerk-react';
+import { apiFetch } from '../lib/api';
 
 export default function ProfilePage() {
   const { t, i18n } = useTranslation();
@@ -14,10 +15,10 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      fetch(`/api/auth/me?clerkId=${user.id}`).then(r => r.json()).then(d => {
+      apiFetch(`/api/auth/me?clerkId=${user.id}`).then(r => r.json()).then(d => {
         setUserId(d.id);
-        fetch(`/api/auth/favorites?userId=${d.id}`).then(r => r.json()).then(setFavorites);
-        fetch(`/api/ai/sessions?userId=${d.id}`).then(r => r.json()).then(setSessions);
+        apiFetch(`/api/auth/favorites?userId=${d.id}`).then(r => r.json()).then(setFavorites);
+        apiFetch(`/api/ai/sessions?userId=${d.id}`).then(r => r.json()).then(setSessions);
       });
     }
   }, [user]);

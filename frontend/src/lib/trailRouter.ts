@@ -1,4 +1,6 @@
-﻿interface Coord { lat: number; lng: number; }
+import { apiFetch } from './api';
+
+interface Coord { lat: number; lng: number; }
 
 export interface TrailRouteResult {
   path: [number, number][];
@@ -60,7 +62,7 @@ export async function getHikingPath(waypoints: Coord[]): Promise<TrailRouteResul
 
   // Try OSRM for real paths in OSM
   try {
-    const res = await fetch('/api/trails/route', {
+    const res = await apiFetch('/api/trails/route', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ waypoints }),

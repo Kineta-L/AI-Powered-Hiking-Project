@@ -65,7 +65,7 @@ ai-hiking-guide/
 │   └── vercel.json                # Vercel 部署配置
 ├── seed-data/
 │   └── trails.json                # 路线种子数据
-├── .env.example                   # 环境变量模板
+├── .env.example                   # 环境变量模板（不要提交真实 .env）
 └── package.json                   # 根级脚本（开发启动）
 ```
 
@@ -138,6 +138,9 @@ ai-hiking-guide/
 # ── 数据库 ───────────────────────────────────────────
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/hiking_guide
 
+# ── Clerk Webhook ───────────────────────────────────
+CLERK_WEBHOOK_SECRET=your_clerk_webhook_secret
+
 # ── AI ───────────────────────────────────────────────
 AI_API_KEY=sk-your-deepseek-key
 AI_BASE_URL=https://api.deepseek.com
@@ -151,6 +154,7 @@ APP_URL=http://localhost:5173
 在 `frontend/` 目录创建 `.env`：
 
 ```env
+VITE_API_URL=http://localhost:3001
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_key
 VITE_THUNDERFOREST_API_KEY=your_thunderforest_key
 ```
@@ -185,12 +189,18 @@ npm run dev
 
 ## 🌐 线上部署
 
-- **前端**：Vercel — `vercel.json` 配置 API 代理至后端
+- **前端**：Vercel — 设置 `VITE_API_URL` 指向 Render 后端
 - **后端 + 数据库**：Render — 免费 PostgreSQL + Web Service
 
 ```bash
 # Render Start Command
-npx prisma db push && npx tsx src/seed-real.ts && npx tsx src/server.ts
+npm start
+```
+
+Render Build Command:
+
+```bash
+npm install && npx prisma generate && npm run build && npx prisma db push
 ```
 
 ### 线上地址

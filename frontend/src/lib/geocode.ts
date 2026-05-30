@@ -1,3 +1,5 @@
+import { apiFetch } from './api';
+
 // Destination coordinates (offline, instant map positioning)
 const COORDS: Record<string, { lat: number; lng: number; name: string }> = {
   'hutiaoxia': { lat: 27.178, lng: 100.054, name: 'Tiger Leaping Gorge' },
@@ -151,7 +153,7 @@ export async function geocode(query: string): Promise<{ lat: number; lng: number
 
   // 3. Backend proxy
   try {
-    const res = await fetch('/api/search/geocode?q=' + encodeURIComponent(query));
+    const res = await apiFetch('/api/search/geocode?q=' + encodeURIComponent(query));
     if (res.ok) { const data = await res.json(); if (data.lat) return data; }
   } catch {}
 

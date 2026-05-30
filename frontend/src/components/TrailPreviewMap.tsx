@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../lib/api';
-import { getTrailCoverImage, getTrailDisplayPath, type TrailPathSource } from '../lib/knownTrailPaths';
+import { getTrailCoverImage, getTrailDisplayPath, hasVerifiedTrailPath, type TrailPathSource } from '../lib/knownTrailPaths';
 import { getHikingPath } from '../lib/trailRouter';
 
 interface TrailPreviewMapProps {
@@ -32,14 +32,15 @@ function buildPolyline(path: [number, number][]) {
 export default function TrailPreviewMap({ trail }: TrailPreviewMapProps) {
   const [detailTrail, setDetailTrail] = useState<TrailPathSource | null>(null);
   const displayTrail = detailTrail || trail;
+  const verifiedPath = hasVerifiedTrailPath(displayTrail);
   const basePath = useMemo(() => getTrailDisplayPath(displayTrail), [displayTrail]);
   const [routedPath, setRoutedPath] = useState<[number, number][] | null>(null);
   const [routingTried, setRoutingTried] = useState(false);
   const path = routedPath || basePath;
   const coverImage = getTrailCoverImage(displayTrail);
   const points = buildPolyline(path);
-  const sparseUnverified = basePath.length > 1 && path.length < 20;
-  const shouldDrawLine = !!points && path.length >= 20;
+  const sparseUnverified = verifiedPath && basePath.length > 1 && path.length < 20;
+  const shouldDrawLine = verifiedPath && !!points && path.length >= 20;
   const previewPoints = points ? points.trim().split(/\s+/) : [];
 
   useEffect(() => {
@@ -47,7 +48,7 @@ export default function TrailPreviewMap({ trail }: TrailPreviewMapProps) {
     setRoutedPath(null);
     setRoutingTried(false);
 
-    if (!displayTrail.coordinates || basePath.length < 2 || basePath.length >= 20) return;
+    if (!verifiedPath || !displayTrail.coordinates || basePath.length < 2 || basePath.length >= 20) return;
 
     getHikingPath(displayTrail.coordinates.map(c => ({ lat: c.latitude, lng: c.longitude })))
       .then(result => {
@@ -61,7 +62,7 @@ export default function TrailPreviewMap({ trail }: TrailPreviewMapProps) {
       });
 
     return () => { cancelled = true; };
-  }, [displayTrail, basePath]);
+  }, [displayTrail, basePath, verifiedPath]);
 
   useEffect(() => {
     let cancelled = false;
@@ -106,7 +107,7 @@ export default function TrailPreviewMap({ trail }: TrailPreviewMapProps) {
             <circle cx={previewPoints.at(-1)?.split(',')[0]} cy={previewPoints.at(-1)?.split(',')[1]} r="4" fill="#f97316" stroke="white" strokeWidth="1.5" />
           </>
         ) : (
-          <text x="180" y="82" textAnchor="middle" fill="rgba(255,255,255,0.55)" fontSize="13">No GPX</text>
+          <text x="180" y="82" textAnchor="middle" fill="rgba(255,255,255,0.62)" fontSize="13">待补充真实GPX</text>
         )}
       </svg>
       {sparseUnverified && (

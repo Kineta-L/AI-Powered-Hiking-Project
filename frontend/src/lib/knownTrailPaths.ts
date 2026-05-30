@@ -6,6 +6,7 @@ export interface TrailPathSource {
   region?: string;
   country?: string;
   coordinates?: { latitude: number; longitude: number }[];
+  gpxTrack?: unknown;
 }
 
 export const TIGER_LEAPING_GORGE_HIGH_TRAIL: [number, number][] = [
@@ -79,8 +80,13 @@ export function isTigerLeapingGorgeTrail(trail: TrailPathSource) {
   return title.includes('虎跳峡') || title.includes('tiger leaping gorge') || title.includes('hutiaoxia');
 }
 
+export function hasVerifiedTrailPath(trail: TrailPathSource) {
+  return Boolean(trail.gpxTrack) || isTigerLeapingGorgeTrail(trail);
+}
+
 export function getTrailDisplayPath(trail: TrailPathSource): [number, number][] {
   if (isTigerLeapingGorgeTrail(trail)) return TIGER_LEAPING_GORGE_HIGH_TRAIL;
+  if (!trail.gpxTrack) return [];
   return (trail.coordinates || []).map(c => [c.longitude, c.latitude] as [number, number]);
 }
 

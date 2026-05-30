@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { apiFetch } from '../lib/api';
 import { getTrailCoverImage, getTrailDisplayPath, type TrailPathSource } from '../lib/knownTrailPaths';
 import { getHikingPath } from '../lib/trailRouter';
 
@@ -29,11 +30,13 @@ function buildPolyline(path: [number, number][]) {
 }
 
 export default function TrailPreviewMap({ trail }: TrailPreviewMapProps) {
-  const basePath = useMemo(() => getTrailDisplayPath(trail), [trail]);
+  const [detailTrail, setDetailTrail] = useState<TrailPathSource | null>(null);
+  const displayTrail = detailTrail || trail;
+  const basePath = useMemo(() => getTrailDisplayPath(displayTrail), [displayTrail]);
   const [routedPath, setRoutedPath] = useState<[number, number][] | null>(null);
   const [routingTried, setRoutingTried] = useState(false);
   const path = routedPath || basePath;
-  const coverImage = getTrailCoverImage(trail);
+  const coverImage = getTrailCoverImage(displayTrail);
   const points = buildPolyline(path);
   const sparseUnverified = basePath.length > 1 && path.length < 20;
   const shouldDrawLine = !!points && path.length >= 20;
@@ -44,9 +47,9 @@ export default function TrailPreviewMap({ trail }: TrailPreviewMapProps) {
     setRoutedPath(null);
     setRoutingTried(false);
 
-    if (!trail.coordinates || basePath.length < 2 || basePath.length >= 20) return;
+    if (!displayTrail.coordinates || basePath.length < 2 || basePath.length >= 20) return;
 
-    getHikingPath(trail.coordinates.map(c => ({ lat: c.latitude, lng: c.longitude })))
+    getHikingPath(displayTrail.coordinates.map(c => ({ lat: c.latitude, lng: c.longitude })))
       .then(result => {
         if (!cancelled && result.engine === 'osrm' && result.path.length > basePath.length) {
           setRoutedPath(result.path);
@@ -58,7 +61,23 @@ export default function TrailPreviewMap({ trail }: TrailPreviewMapProps) {
       });
 
     return () => { cancelled = true; };
-  }, [trail, basePath]);
+  }, [displayTrail, basePath]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setDetailTrail(null);
+
+    if (trail.coordinates?.length || !trail.id) return;
+
+    apiFetch(`/api/trails/${trail.id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!cancelled && data?.coordinates?.length) setDetailTrail(data);
+      })
+      .catch(() => {});
+
+    return () => { cancelled = true; };
+  }, [trail.id, trail.coordinates]);
 
   return (
     <div className="h-44 relative overflow-hidden bg-[#18231f]">

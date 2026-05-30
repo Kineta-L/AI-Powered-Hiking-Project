@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../server';
+import { standardizeDifficulty, trailMatchesSearch } from '../utils/trailStandardization';
 
 export const aiRouter = Router();
 
@@ -232,7 +233,139 @@ function asNumber(value: any, fallback = 0) {
   return Number.isFinite(num) ? num : fallback;
 }
 
-function validatePlan(raw: any, minTotalKm: number, maxTotalKm: number, language?: string): ValidatedPlan {
+type FitnessProfile = {
+  key: string;
+  minDailyKm: number;
+  maxDailyKm: number;
+  maxDailyElevation: number;
+  maxDifficultyRank: number;
+  label: string;
+};
+
+const difficultyRank: Record<string, number> = {
+  easy: 1,
+  moderate: 2,
+  hard: 3,
+  expert: 4,
+};
+
+const fitnessProfiles: Record<string, FitnessProfile> = {
+  beginner: { key: 'beginner', minDailyKm: 6, maxDailyKm: 10, maxDailyElevation: 500, maxDifficultyRank: 1, label: 'beginner' },
+  intermediate: { key: 'intermediate', minDailyKm: 10, maxDailyKm: 16, maxDailyElevation: 900, maxDifficultyRank: 2, label: 'intermediate' },
+  advanced: { key: 'advanced', minDailyKm: 16, maxDailyKm: 24, maxDailyElevation: 1300, maxDifficultyRank: 3, label: 'advanced' },
+  expert: { key: 'expert', minDailyKm: 24, maxDailyKm: 35, maxDailyElevation: 2000, maxDifficultyRank: 4, label: 'expert' },
+};
+
+function getFitnessProfile(value: unknown) {
+  return fitnessProfiles[String(value || '').toLowerCase()] || fitnessProfiles.intermediate;
+}
+
+function getFitnessLabel(profile: FitnessProfile, language?: string) {
+  if (language !== 'zh') return profile.label;
+  const labels: Record<string, string> = {
+    beginner: '新手',
+    intermediate: '中级',
+    advanced: '高级',
+    expert: '专家级',
+  };
+  return labels[profile.key] || profile.label;
+}
+
+function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+  const rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad;
+  const dLng = (b.lng - a.lng) * rad;
+  const lat1 = a.lat * rad;
+  const lat2 = b.lat * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+function pathDistanceKm(coords: { lat: number; lng: number }[]) {
+  let total = 0;
+  for (let i = 1; i < coords.length; i++) total += distanceKm(coords[i - 1], coords[i]);
+  return total;
+}
+
+function interpolatePoint(a: { lat: number; lng: number }, b: { lat: number; lng: number }, ratio: number) {
+  return {
+    lat: a.lat + (b.lat - a.lat) * ratio,
+    lng: a.lng + (b.lng - a.lng) * ratio,
+  };
+}
+
+function clipPathByDistance(coords: { lat: number; lng: number }[], targetKm: number) {
+  if (coords.length < 2 || targetKm <= 0) return coords;
+  const clipped = [coords[0]];
+  let covered = 0;
+
+  for (let i = 1; i < coords.length; i++) {
+    const segmentKm = distanceKm(coords[i - 1], coords[i]);
+    if (covered + segmentKm >= targetKm) {
+      const ratio = segmentKm > 0 ? (targetKm - covered) / segmentKm : 0;
+      clipped.push(interpolatePoint(coords[i - 1], coords[i], Math.max(0, Math.min(1, ratio))));
+      break;
+    }
+    clipped.push(coords[i]);
+    covered += segmentKm;
+  }
+
+  return clipped.length >= 2 ? clipped : coords.slice(0, 2);
+}
+
+function clampTargetDistance(fullKm: number, minTotalKm: number, maxTotalKm: number) {
+  if (!fullKm || fullKm <= maxTotalKm) return fullKm || Math.round((minTotalKm + maxTotalKm) / 2);
+  return Math.round((minTotalKm + maxTotalKm) / 2);
+}
+
+function scoreSeedTrail(trail: any, destination: string, days: number, profile: FitnessProfile, minTotalKm: number, maxTotalKm: number) {
+  const normalizedDestination = String(destination || '').toLowerCase();
+  let score = trailMatchesSearch(trail, destination) ? 20 : 0;
+  if (trail.titleZh?.includes(destination)) score += 20;
+  if (trail.titleEn?.toLowerCase().includes(normalizedDestination)) score += 20;
+  if (trail.region?.includes(destination) || trail.country?.includes(destination)) score += 8;
+
+  const distance = Number(trail.distance || 0);
+  const duration = Number(trail.duration || 0);
+  const elevation = Number(trail.elevationGain || 0);
+  const trailDifficulty = standardizeDifficulty(trail.difficulty);
+  const trailDifficultyRank = difficultyRank[trailDifficulty] || 2;
+  const averageDailyElevation = duration > 0 ? elevation / duration : elevation / Math.max(1, days);
+
+  if (distance >= minTotalKm && distance <= maxTotalKm) score += 18;
+  else if (distance > maxTotalKm && trail.coordinates?.length > 10) score += 10;
+  else if (distance > 0 && distance < minTotalKm) score -= 8;
+
+  if (duration) score += Math.max(0, 10 - Math.abs(duration - days) * 3);
+  if (trailDifficultyRank <= profile.maxDifficultyRank) score += 14;
+  else score -= (trailDifficultyRank - profile.maxDifficultyRank) * 14;
+
+  if (averageDailyElevation <= profile.maxDailyElevation) score += 8;
+  else score -= Math.ceil((averageDailyElevation - profile.maxDailyElevation) / 250) * 4;
+
+  return score;
+}
+
+function seedTrailMatchesDestination(trail: any, destination: string, isTigerDestination: boolean) {
+  const query = String(destination || '').trim().toLowerCase();
+  const titleZh = String(trail.titleZh || '');
+  const titleEn = String(trail.titleEn || '').toLowerCase();
+  const region = String(trail.region || '');
+  const country = String(trail.country || '');
+
+  if (isTigerDestination) {
+    return titleZh.includes('\u864e\u8df3\u5ce1') || titleEn.includes('tiger leaping gorge');
+  }
+
+  if (!query) return false;
+  return titleZh.includes(destination) ||
+    titleEn.includes(query) ||
+    region.includes(destination) ||
+    country.includes(destination) ||
+    trailMatchesSearch(trail, destination);
+}
+
+function validatePlan(raw: any, minTotalKm: number, maxTotalKm: number, requestedDays: number, profile: FitnessProfile, language?: string): ValidatedPlan {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -268,13 +401,14 @@ function validatePlan(raw: any, minTotalKm: number, maxTotalKm: number, language
   if (!plan.bestSeason) errors.push('Missing bestSeason');
   if (!plan.totalDistance || plan.totalDistance <= 0) errors.push('Missing totalDistance');
   if (plan.days.length === 0) errors.push('Missing days');
+  if (plan.days.length !== requestedDays) errors.push(`Expected ${requestedDays} days, got ${plan.days.length}`);
   if (plan.gearList.length === 0) errors.push('Missing gearList');
   if (plan.safetyTips.length === 0) errors.push('Missing safetyTips');
 
-  const looseMin = minTotalKm * 0.5;
-  const looseMax = maxTotalKm * 1.5;
+  const looseMin = minTotalKm * 0.75;
+  const looseMax = maxTotalKm * 1.15;
   if (plan.totalDistance && (plan.totalDistance < looseMin || plan.totalDistance > looseMax)) {
-    errors.push(`totalDistance ${plan.totalDistance}km is outside the expected range`);
+    errors.push(`totalDistance ${plan.totalDistance}km is incompatible with ${requestedDays} days at ${profile.key} fitness`);
   } else if (plan.totalDistance && (plan.totalDistance < minTotalKm || plan.totalDistance > maxTotalKm)) {
     warnings.push(language === 'zh'
       ? `规划距离 ${plan.totalDistance}km 不在理想的 ${minTotalKm}-${maxTotalKm}km 范围内`
@@ -284,6 +418,15 @@ function validatePlan(raw: any, minTotalKm: number, maxTotalKm: number, language
   if (plan.routePoints.length > 0 && plan.routePoints.length < 2) {
     warnings.push('Route has too few points for map routing');
   }
+
+  plan.days.forEach(day => {
+    if (day.distance && day.distance > profile.maxDailyKm * 1.15) {
+      errors.push(`Day ${day.day} distance ${day.distance}km exceeds ${profile.key} fitness limit`);
+    }
+    if (day.elevation && day.elevation > profile.maxDailyElevation * 1.25) {
+      warnings.push(`Day ${day.day} elevation ${day.elevation}m may be high for ${profile.key} fitness`);
+    }
+  });
 
   if (errors.length > 0) {
     throw new Error(errors.join('; '));
@@ -311,10 +454,9 @@ aiRouter.post('/plan', async (req: Request, res: Response) => {
     return res.end();
   }
 
-  const dailyRanges: Record<string, [number, number]> = {
-    beginner: [8, 12], intermediate: [12, 18], advanced: [18, 25], expert: [25, 35]
-  };
-  const [minDailyKm, maxDailyKm] = dailyRanges[fitness] || [12, 18];
+  const profile = getFitnessProfile(fitness);
+  const minDailyKm = profile.minDailyKm;
+  const maxDailyKm = profile.maxDailyKm;
   const minTotalKm = days * minDailyKm;
   const maxTotalKm = days * maxDailyKm;
   const maxRoutePoints = Math.max(12, Math.ceil(maxTotalKm / 2));
@@ -328,41 +470,48 @@ aiRouter.post('/plan', async (req: Request, res: Response) => {
   let seedTrailData: any = null;
   try {
     const seedTrails = await prisma.trail.findMany({
-      where: {
-        status: 'seed',
-        OR: [
-          { titleZh: { contains: destination } },
-          { titleEn: { contains: destination } },
-          { region: { contains: destination } },
-        ],
-      },
+      where: { status: 'seed' },
       include: { coordinates: { orderBy: { order: 'asc' } }, days: { orderBy: { dayNumber: 'asc' } } },
-      take: 3,
     });
 
-    if (seedTrails.length > 0) {
-      let best = seedTrails[0];
-      let bestScore = 0;
-      for (const st of seedTrails) {
-        let score = 0;
-        if (st.titleZh.includes(destination)) score += 10;
-        if (st.titleEn?.toLowerCase().includes(destination.toLowerCase())) score += 10;
-        if (st.region?.includes(destination)) score += 5;
-        if (score > bestScore) { bestScore = score; best = st; }
-      }
-      if (bestScore > 0) {
-        seedTrailData = { titleZh: best.titleZh, titleEn: best.titleEn, distance: best.distance,
-          elevationGain: best.elevationGain, duration: best.duration,
-          coordinates: best.coordinates.map((c: any) => ({ lat: c.latitude, lng: c.longitude })) };
-        console.log('[AI] Matched seed trail:', best.titleZh, '(' + best.coordinates.length + ' coords)');
-      }
+    const ranked = seedTrails
+      .filter(st => seedTrailMatchesDestination(st, destination, isTigerDestination))
+      .map(st => ({ trail: st, score: scoreSeedTrail(st, destination, days, profile, minTotalKm, maxTotalKm) }))
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score);
+
+    if (ranked.length > 0) {
+      const best = ranked[0].trail;
+      seedTrailData = {
+        titleZh: best.titleZh,
+        titleEn: best.titleEn,
+        difficulty: best.difficulty,
+        distance: best.distance,
+        elevationGain: best.elevationGain,
+        duration: best.duration,
+        suitabilityScore: ranked[0].score,
+        coordinates: best.coordinates.map((c: any) => ({ lat: c.latitude, lng: c.longitude })),
+      };
+      console.log('[AI] Matched seed trail:', best.titleZh, 'score', ranked[0].score, '(' + best.coordinates.length + ' coords)');
     }
   } catch (e: any) { console.warn('[AI] Seed lookup:', e.message); }
+
+  if (seedTrailData && isTigerDestination) {
+    seedTrailData.titleZh = '\u864e\u8df3\u5ce1\u9ad8\u8def\u5f92\u6b65';
+    seedTrailData.titleEn = 'Tiger Leaping Gorge High Trail';
+    seedTrailData.difficulty = 'moderate';
+    seedTrailData.distance = 22;
+    seedTrailData.elevationGain = 1200;
+    seedTrailData.duration = 2;
+    seedTrailData.coordinates = TIGER_LEAPING_GORGE_HIGH_TRAIL.map(([lng, lat]) => ({ lat, lng }));
+    console.log('[AI] Replaced matched Tiger seed with built-in high trail geometry (' + TIGER_LEAPING_GORGE_HIGH_TRAIL.length + ' coords)');
+  }
 
   if (!seedTrailData && isTigerDestination) {
     seedTrailData = {
       titleZh: '\u864e\u8df3\u5ce1\u9ad8\u8def\u5f92\u6b65',
       titleEn: 'Tiger Leaping Gorge High Trail',
+      difficulty: 'moderate',
       distance: 22,
       elevationGain: 1200,
       duration: 2,
@@ -376,22 +525,36 @@ aiRouter.post('/plan', async (req: Request, res: Response) => {
   // If seed trail matched, clip a segment based on user fitness & send real coords directly
   let seedRouteCoords: [number, number][] | null = null;
   let seedRouteEngine = '';
+  let selectedRouteKm = 0;
   if (seedTrailData && seedTrailData.coordinates?.length > 0) {
     if (isTigerDestination) {
       seedTrailData.titleEn = seedTrailData.titleEn || 'Tiger Leaping Gorge High Trail';
     }
     const coords: { lat: number; lng: number }[] = seedTrailData.coordinates;
-    const totalTrailKm = seedTrailData.distance || 0;
-    const targetKm = Math.round((minTotalKm + maxTotalKm) / 2);
-    const ratio = totalTrailKm > 0 ? Math.min(1, targetKm / totalTrailKm) : 1;
-    const clipCount = Math.max(4, Math.round(coords.length * ratio));
-    const isTigerLeapingGorge = seedTrailData.titleZh?.includes('虎跳峡') ||
-      seedTrailData.titleEn?.toLowerCase().includes('tiger leaping gorge');
-    seedRouteCoords = isTigerLeapingGorge
-      ? TIGER_LEAPING_GORGE_HIGH_TRAIL
-      : coords.slice(0, clipCount).map(c => [c.lng, c.lat] as [number, number]);
+    const measuredTrailKm = pathDistanceKm(coords);
+    const totalTrailKm = seedTrailData.distance || measuredTrailKm;
+    const classicDays = Number(seedTrailData.duration || 0);
+    const routeTooShortForRequest = totalTrailKm > 0 && totalTrailKm < minTotalKm * 0.75;
+    const routeTooShortByDays = classicDays > 0 && days > classicDays * 2 && totalTrailKm < minTotalKm;
+    if (routeTooShortForRequest || routeTooShortByDays) {
+      res.write('data: ' + JSON.stringify({
+        type: 'validation_error',
+        message: language === 'zh'
+          ? `当前可用真实轨迹约 ${Math.round(totalTrailKm)}km / ${classicDays || '未知'} 天，无法支撑 ${days} 天 ${getFitnessLabel(profile, language)}体能的规划。请减少天数，或把目的地扩大到更大的区域。`
+          : `The available verified track is about ${Math.round(totalTrailKm)}km / ${classicDays || 'unknown'} days, so it cannot support a ${days}-day ${fitness} plan. Reduce the days or choose a broader destination.`,
+        detail: 'verified_track_too_short_for_request',
+      }) + '\n\n');
+      return res.end();
+    }
+    const targetKm = clampTargetDistance(totalTrailKm, minTotalKm, maxTotalKm);
+    const visualClipKm = measuredTrailKm > 0 && totalTrailKm > measuredTrailKm * 1.15
+      ? measuredTrailKm * (targetKm / totalTrailKm)
+      : targetKm;
+    const clippedCoords = totalTrailKm > maxTotalKm ? clipPathByDistance(coords, visualClipKm) : coords;
+    selectedRouteKm = Math.round((totalTrailKm > maxTotalKm ? targetKm : totalTrailKm) * 10) / 10;
+    seedRouteCoords = clippedCoords.map(c => [c.lng, c.lat] as [number, number]);
     seedRouteEngine = 'seed_clipped';
-    console.log('[AI] Seed clip: ' + totalTrailKm + 'km trail, target ' + targetKm + 'km, using ' + seedRouteCoords.length + ' coords');
+    console.log('[AI] Seed clip: ' + totalTrailKm + 'km trail, target ' + targetKm + 'km, selected ' + selectedRouteKm + 'km using ' + seedRouteCoords.length + ' coords');
   }
   let systemPrompt: string;
 
@@ -438,8 +601,9 @@ aiRouter.post('/plan', async (req: Request, res: Response) => {
       .map((c: any) => c.lat.toFixed(4) + ',' + c.lng.toFixed(4)).join(' | ');
     structuredSeedInfo = '\nKnown real trail: ' + (seedTrailData.titleEn || seedTrailData.titleZh) +
       '\nFull distance: ' + seedTrailData.distance + 'km, elevation gain: ' + seedTrailData.elevationGain + 'm, classic duration: ' + seedTrailData.duration + ' days.' +
+      (selectedRouteKm ? '\nSelected segment for this user: about ' + selectedRouteKm + 'km, adapted to ' + days + ' days at ' + profile.key + ' fitness.' : '') +
       '\nReal coordinate samples: ' + samples +
-      '\nUse these real coordinates as the geographic source of truth and describe a continuous segment.';
+      '\nUse the selected real segment as the geographic source of truth. Do not describe the full classic route if it exceeds the user constraints.';
   }
 
   const planSchemaExample = {
@@ -467,6 +631,7 @@ aiRouter.post('/plan', async (req: Request, res: Response) => {
     '\nDestination: ' + destination +
     '\nUser fitness: ' + fitness + '. Days: ' + days + '. Preferences: ' + (preferences || 'none') + '.' +
     '\nDaily distance target: ' + minDailyKm + '-' + maxDailyKm + 'km. Total target: ' + minTotalKm + '-' + maxTotalKm + 'km.' +
+    '\nHard constraints: return exactly ' + days + ' daily itinerary items. No day may exceed ' + maxDailyKm + 'km unless explicitly justified by terrain and still under 15% tolerance. Keep daily elevation suitable for ' + profile.key + ' fitness, ideally under ' + profile.maxDailyElevation + 'm per day.' +
     '\nIf a classic route is longer than the target, choose a continuous highlight segment. Do not describe a loop or backtracking route unless the destination requires it.' +
     '\nRoute point rules: include 4-' + maxRoutePoints + ' forward-moving routePoints. Coordinates must be decimal degrees and plausible for the destination.' +
     structuredSeedInfo +
@@ -527,7 +692,7 @@ aiRouter.post('/plan', async (req: Request, res: Response) => {
 
     try {
       const parsed = extractJsonObject(fullContent);
-      const plan = validatePlan(parsed, minTotalKm, maxTotalKm, language);
+      const plan = validatePlan(parsed, minTotalKm, maxTotalKm, days, profile, language);
       res.write('data: ' + JSON.stringify({ type: 'plan', plan }) + '\n\n');
 
       if (userId && fullContent) {
